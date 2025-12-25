@@ -2,7 +2,9 @@
 import { GoogleGenAI, Modality } from "@google/genai";
 import type { Message, ViewMode, ImageStyle, AspectRatio } from '../types';
 
-const getAIClient = () => new GoogleGenAI({ apiKey: process.env.API_KEY });
+// Temporary development key provided by the user
+const DEV_KEY = "AIzaSyBll12h2t9UU_5fqjk2VopsG4OkAKdWKHU";
+const getAIClient = () => new GoogleGenAI({ apiKey: process.env.API_KEY || DEV_KEY });
 
 const dataUrlToGeminiPart = (url: string) => {
     const match = url.match(/^data:(.+);base64,(.+)$/);
@@ -82,14 +84,14 @@ export const generateVideo = async (prompt: string, aspectRatio: '16:9' | '9:16'
     });
 
     while (!operation.done) {
-        await new Promise(resolve => setTimeout(resolve, 5000));
+        await new Promise(resolve => setTimeout(resolve, 10000));
         operation = await ai.operations.getVideosOperation({ operation: operation });
     }
 
     const downloadLink = operation.response?.generatedVideos?.[0]?.video?.uri;
     if (!downloadLink) throw new Error("Infinity Video Core generation failed.");
     
-    const response = await fetch(`${downloadLink}&key=${process.env.API_KEY}`);
+    const response = await fetch(`${downloadLink}&key=${process.env.API_KEY || DEV_KEY}`);
     const blob = await response.blob();
     return URL.createObjectURL(blob);
 };

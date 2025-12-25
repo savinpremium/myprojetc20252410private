@@ -25,7 +25,10 @@ export const LoginView: FC = () => {
             await signInWithGoogle();
         } catch (err: any) {
             console.error("Auth Error:", err);
-            if (err.code === 'auth/operation-not-supported-in-this-environment') {
+            // Specifically handle the Identity Toolkit missing error
+            if (err.message?.includes('identitytoolkit.googleapis.com') || err.message?.includes('has not been used')) {
+                setError("Authentication Error: The Identity Toolkit API is not enabled for this project. Please enable it in the Google Cloud Console.");
+            } else if (err.code === 'auth/operation-not-supported-in-this-environment') {
                 setError("Google Sign-In is not supported in this environment. Please use Email/Password.");
             } else {
                 setError(err.message || "An error occurred during authentication.");
@@ -115,8 +118,8 @@ export const LoginView: FC = () => {
                         <p className="text-gray-400 text-center mb-8">{mode === 'signin' ? 'Log in to your workspace.' : 'Sign up to start creating.'}</p>
                         
                         {error && (
-                          <div className="flex items-center justify-center gap-2 text-red-300 font-medium mb-4 p-3 w-full bg-red-900/40 rounded-lg text-center text-sm border border-red-500/20">
-                            <WarningIcon className="w-5 h-5 flex-shrink-0"/>
+                          <div className="flex flex-col items-center justify-center gap-2 text-red-300 font-medium mb-4 p-4 w-full bg-red-900/40 rounded-xl text-center text-sm border border-red-500/20">
+                            <WarningIcon className="w-6 h-6 flex-shrink-0 mb-1"/>
                             <span>{error}</span>
                           </div>
                         )}
