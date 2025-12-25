@@ -1,0 +1,9 @@
+{
+  "name": "InfinityAI Studio 2026",
+  "description": "Fusion Edition. Proprietary intelligence suite developed exclusively by Infinity Team.",
+  "requestFramePermissions": [
+    "microphone",
+    "camera",
+    "geolocation"
+  ]
+}
