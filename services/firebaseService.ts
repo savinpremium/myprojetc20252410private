@@ -1,7 +1,8 @@
 
 import { initializeApp, getApps, getApp } from "firebase/app";
 import { 
-    initializeAuth, 
+    getAuth,
+    setPersistence,
     inMemoryPersistence, 
     GoogleAuthProvider, 
     signInWithPopup, 
@@ -27,10 +28,13 @@ const firebaseConfig = {
 // Initialize App
 const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
 
-// Initialize Auth with inMemoryPersistence to bypass "operation-not-supported-in-this-environment"
-// which usually occurs due to blocked local storage or non-standard protocols in sandboxed frames.
-export const auth = initializeAuth(app, {
-  persistence: inMemoryPersistence
+// Initialize Auth
+// The registration of the 'auth' component happens when 'firebase/auth' is imported and getAuth is called.
+export const auth = getAuth(app);
+
+// Apply inMemoryPersistence to handle environments where localStorage/sessionStorage are restricted.
+setPersistence(auth, inMemoryPersistence).catch((err) => {
+    console.warn("Firebase Auth: Could not set in-memory persistence", err);
 });
 
 const googleProvider = new GoogleAuthProvider();
