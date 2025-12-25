@@ -1,4 +1,3 @@
-
 import React, { useRef, useEffect } from 'react';
 import type { FC } from 'react';
 import type { Message, Source } from '../types';
@@ -55,25 +54,42 @@ export const ChatView: FC<ChatViewProps> = ({ messages, isLoading }) => {
         }
     }, [messages, isLoading]);
 
+    // Handle speaking using Gemini TTS. Fix: Correctly decode raw PCM audio data.
     const handleSpeak = async (text: string) => {
         if (playingAudio === text) return;
         try {
             setPlayingAudio(text);
             const base64 = await generateSpeech(text);
-            const audio = new Audio(`data:audio/pcm;base64,${base64}`);
-            // Note: Decoding PCM raw might require a context helper, but browser native data URLs often work if formatted.
-            // Using a standard audio element for simplicity in this draft.
+            
+            // Decode base64 to bytes
             const binaryString = atob(base64);
             const bytes = new Uint8Array(binaryString.length);
             for (let i = 0; i < binaryString.length; i++) bytes[i] = binaryString.charCodeAt(i);
             
-            const audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)();
-            const buffer = await audioCtx.decodeAudioData(bytes.buffer.slice(0)); // Standard decoder might fail on raw PCM without header
+            const audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)({sampleRate: 24000});
+            
+            // The audio bytes returned by the API is raw PCM data. 
+            // We must manually decode it and load it into an AudioBuffer.
+            const dataInt16 = new Int16Array(bytes.buffer);
+            const numChannels = 1;
+            const frameCount = dataInt16.length / numChannels;
+            const audioBuffer = audioCtx.createBuffer(numChannels, frameCount, 24000);
+
+            for (let channel = 0; channel < numChannels; channel++) {
+                const channelData = audioBuffer.getChannelData(channel);
+                for (let i = 0; i < frameCount; i++) {
+                    channelData[i] = dataInt16[i * numChannels + channel] / 32768.0;
+                }
+            }
+
             const source = audioCtx.createBufferSource();
-            source.buffer = buffer;
+            source.buffer = audioBuffer;
             source.connect(audioCtx.destination);
             source.start();
-            source.onended = () => setPlayingAudio(null);
+            source.onended = () => {
+                setPlayingAudio(null);
+                audioCtx.close();
+            };
         } catch (e) {
             console.error("Audio failed", e);
             setPlayingAudio(null);
