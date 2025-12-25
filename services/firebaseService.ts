@@ -3,7 +3,7 @@ import { initializeApp, getApps, getApp } from "firebase/app";
 import { 
     getAuth,
     setPersistence,
-    inMemoryPersistence, 
+    browserLocalPersistence, 
     GoogleAuthProvider, 
     signInWithPopup, 
     signOut,
@@ -16,7 +16,7 @@ import {
 export type User = FirebaseUser;
 
 const firebaseConfig = {
-  apiKey: "AIzaSyBsSZ7G0GXFxC_Sbv4uK-1QIKzPn6RaVxI",
+  apiKey: "AIzaSyBll12h2t9UU_5fqjk2VopsG4OkAKdWKHU",
   authDomain: "infinity---ai-2026.firebaseapp.com",
   projectId: "infinity---ai-2026",
   storageBucket: "infinity---ai-2026.firebasestorage.app",
@@ -29,13 +29,15 @@ const firebaseConfig = {
 const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
 
 // Initialize Auth
-// The registration of the 'auth' component happens when 'firebase/auth' is imported and getAuth is called.
-export const auth = getAuth(app);
+// Note: importing 'firebase/auth' registers the component. Calling getAuth(app) uses it.
+const authInstance = getAuth(app);
 
-// Apply inMemoryPersistence to handle environments where localStorage/sessionStorage are restricted.
-setPersistence(auth, inMemoryPersistence).catch((err) => {
-    console.warn("Firebase Auth: Could not set in-memory persistence", err);
+// Use local persistence for better user experience in supported environments
+setPersistence(authInstance, browserLocalPersistence).catch((err) => {
+    console.warn("Firebase Auth: Local persistence not supported, falling back.", err);
 });
+
+export const auth = authInstance;
 
 const googleProvider = new GoogleAuthProvider();
 
