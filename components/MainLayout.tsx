@@ -150,8 +150,9 @@ export const MainLayout: FC<MainLayoutProps> = ({ user }) => {
            });
         }
     } catch (err: any) {
-        setError(err.message || "2026 Core Interface Failure. Retry later.");
-        updateMessages(currentChatId, [...newMessages, { role: 'model', parts: [{ text: "Error syncing with 2026 Core." }] }]);
+        const errorMsg = err.message || "2026 Core Interface Failure.";
+        setError(errorMsg);
+        updateMessages(currentChatId, [...newMessages, { role: 'model', parts: [{ text: `Core Error: ${errorMsg}` }] }]);
     } finally {
         setIsLoading(false);
     }

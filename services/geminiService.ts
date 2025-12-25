@@ -1,12 +1,13 @@
+
 import { GoogleGenAI, Modality } from "@google/genai";
 import type { Message, ViewMode, ImageStyle, AspectRatio } from '../types';
 
 const getAIClient = () => {
     const apiKey = process.env.API_KEY;
     if (!apiKey) {
-        console.error("Gemini API Key is missing in process.env.API_KEY");
+        throw new Error("API_KEY environment variable is not defined. Please check your hosting environment configuration.");
     }
-    return new GoogleGenAI({ apiKey: apiKey || "" });
+    return new GoogleGenAI({ apiKey });
 };
 
 const dataUrlToGeminiPart = (url: string) => {
@@ -30,19 +31,20 @@ export const getChatResponseStream = async (history: Message[], systemInstructio
       })
   }));
 
-  // Fallback logic: If Thinking is requested but fails (often due to project limits), 
-  // we use flash-preview as a safe default.
-  const model = mode === 'code' || useThinking ? 'gemini-3-pro-preview' : 'gemini-3-flash-preview';
+  // Use Flash as the standard model for higher availability.
+  // Use Pro only when explicit thinking is requested.
+  const model = (mode === 'code' || useThinking) ? 'gemini-3-pro-preview' : 'gemini-3-flash-preview';
   
   const config: any = {
     systemInstruction,
   };
 
-  if (mode === 'chat' || mode === 'vision') {
+  // Only add tools if using the Pro model or if specifically needed
+  if (model === 'gemini-3-pro-preview' && (mode === 'chat' || mode === 'vision')) {
     config.tools = [{googleSearch: {}}];
   }
 
-  if (useThinking) {
+  if (useThinking && model === 'gemini-3-pro-preview') {
     config.thinkingConfig = { thinkingBudget: 16000 };
   }
 
@@ -52,8 +54,10 @@ export const getChatResponseStream = async (history: Message[], systemInstructio
         contents: contents,
         config,
       });
-  } catch (err) {
-      console.warn("Primary model failed, falling back to flash...", err);
+  } catch (err: any) {
+      console.warn(`Primary model (${model}) failed, attempting fallback to flash-preview...`, err);
+      
+      // If thinking failed, try regular flash without thinking config or tools
       return await ai.models.generateContentStream({
         model: 'gemini-3-flash-preview',
         contents: contents,
@@ -66,30 +70,33 @@ export const generateImage = async (prompt: string, style: ImageStyle, aspectRat
     const ai = getAIClient();
     const fullPrompt = `A ${style} style image of ${prompt}, ultra-high quality, masterpiece, 2026 aesthetics.`;
 
-    const response = await ai.models.generateContent({
-        model: 'gemini-3-pro-image-preview',
-        contents: [{ parts: [{ text: fullPrompt }] }],
-        config: {
-          imageConfig: {
-              aspectRatio: aspectRatio as any,
-              imageSize: "1K"
-          }
-        },
-    });
+    try {
+        const response = await ai.models.generateContent({
+            model: 'gemini-3-pro-image-preview',
+            contents: [{ parts: [{ text: fullPrompt }] }],
+            config: {
+              imageConfig: {
+                  aspectRatio: aspectRatio as any,
+                  imageSize: "1K"
+              }
+            },
+        });
 
-    const parts = response.candidates?.[0]?.content?.parts || [];
-    for (const part of parts) {
-        if (part.inlineData) {
-            return `data:image/png;base64,${part.inlineData.data}`;
+        const parts = response.candidates?.[0]?.content?.parts || [];
+        for (const part of parts) {
+            if (part.inlineData) {
+                return `data:image/png;base64,${part.inlineData.data}`;
+            }
         }
+        throw new Error("Image part missing from AI response.");
+    } catch (err: any) {
+        throw new Error(`Visual Synthesis Failed: ${err.message}`);
     }
-    throw new Error("No image data returned from Gemini Pro Image.");
 };
 
 export const generateVideo = async (prompt: string, aspectRatio: '16:9' | '9:16' = '16:9'): Promise<string> => {
     const ai = getAIClient();
     
-    // Check if key selection is needed for Veo as per instructions
     if (typeof window !== 'undefined' && (window as any).aistudio) {
         const hasKey = await (window as any).aistudio.hasSelectedApiKey();
         if (!hasKey) {
@@ -97,43 +104,54 @@ export const generateVideo = async (prompt: string, aspectRatio: '16:9' | '9:16'
         }
     }
 
-    let operation = await ai.models.generateVideos({
-        model: 'veo-3.1-fast-generate-preview',
-        prompt: prompt + ", cinematic 4k, 2026 movie style",
-        config: {
-            numberOfVideos: 1,
-            resolution: '720p',
-            aspectRatio: aspectRatio
+    try {
+        let operation = await ai.models.generateVideos({
+            model: 'veo-3.1-fast-generate-preview',
+            prompt: prompt + ", cinematic 4k, 2026 movie style",
+            config: {
+                numberOfVideos: 1,
+                resolution: '720p',
+                aspectRatio: aspectRatio
+            }
+        });
+
+        while (!operation.done) {
+            await new Promise(resolve => setTimeout(resolve, 10000));
+            operation = await ai.operations.getVideosOperation({ operation: operation });
         }
-    });
 
-    while (!operation.done) {
-        await new Promise(resolve => setTimeout(resolve, 10000));
-        operation = await ai.operations.getVideosOperation({ operation: operation });
+        const downloadLink = operation.response?.generatedVideos?.[0]?.video?.uri;
+        if (!downloadLink) throw new Error("No download link returned.");
+        
+        const response = await fetch(`${downloadLink}&key=${process.env.API_KEY}`);
+        const blob = await response.blob();
+        return URL.createObjectURL(blob);
+    } catch (err: any) {
+        throw new Error(`Video Engine Error: ${err.message}`);
     }
-
-    const downloadLink = operation.response?.generatedVideos?.[0]?.video?.uri;
-    if (!downloadLink) throw new Error("Video generation failed.");
-    
-    const response = await fetch(`${downloadLink}&key=${process.env.API_KEY}`);
-    const blob = await response.blob();
-    return URL.createObjectURL(blob);
 };
 
 export const generateCode = async (prompt: string): Promise<string> => {
     const ai = getAIClient();
-    const response = await ai.models.generateContent({
-        model: 'gemini-3-pro-preview',
-        contents: prompt,
-        config: {
-            thinkingConfig: { thinkingBudget: 8000 },
-            systemInstruction: "You are an expert software engineer. Output ONLY the code. Do not use markdown backticks unless requested."
-        },
-    });
-    return response.text;
+    try {
+        const response = await ai.models.generateContent({
+            model: 'gemini-3-pro-preview',
+            contents: prompt,
+            config: {
+                systemInstruction: "You are an expert software engineer. Output ONLY the code. Do not use markdown backticks unless requested."
+            },
+        });
+        return response.text;
+    } catch (err: any) {
+        // Fallback to flash for code if pro fails
+        const fallback = await ai.models.generateContent({
+            model: 'gemini-3-flash-preview',
+            contents: prompt,
+        });
+        return fallback.text;
+    }
 };
 
-// Implement generateSpeech for TTS using gemini-2.5-flash-preview-tts
 export const generateSpeech = async (text: string): Promise<string> => {
   const ai = getAIClient();
   const response = await ai.models.generateContent({
@@ -149,7 +167,7 @@ export const generateSpeech = async (text: string): Promise<string> => {
     },
   });
   const audioData = response.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data;
-  if (!audioData) throw new Error("Failed to generate speech");
+  if (!audioData) throw new Error("Voice synthesis failure.");
   return audioData;
 };
 

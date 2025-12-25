@@ -42,7 +42,7 @@ export const LoginView: FC = () => {
                             <span>Cloud Services Restricted</span>
                         </div>
                         <p className="text-[11px] leading-tight text-gray-400">
-                            The Identity Toolkit is currently blocked in your Firebase project configuration.
+                            The Identity Toolkit is currently blocked in your Firebase project configuration. Use the override below.
                         </p>
                         <div className="pt-2">
                             <button 
@@ -139,7 +139,7 @@ export const LoginView: FC = () => {
                         </div>
                         
                         <div className="space-y-4">
-                            <Feature icon={<ChatIcon className="w-7 h-7"/>} title="Neural Dialog" description="Gemini 3 Pro reasoning engine for complex instruction following." />
+                            <Feature icon={<ChatIcon className="w-7 h-7"/>} title="Neural Dialog" description="Gemini 3 Flash reasoning engine for complex instruction following." />
                             <Feature icon={<ImageIcon className="w-7 h-7"/>} title="Pixel Forge" description="Masterpiece visual generation system powered by Imagen 4." />
                             <Feature icon={<CodeIcon className="w-7 h-7"/>} title="Logic Canvas" description="Expert software development and code synthesis interface." />
                         </div>
@@ -220,9 +220,9 @@ export const LoginView: FC = () => {
 
                             <button 
                                 onClick={() => loginAsGuest()}
-                                className="w-full text-gray-500 hover:text-white font-black py-2 text-[10px] uppercase tracking-[0.4em] transition-colors border border-dashed border-white/5 rounded-xl mt-4 hover:border-white/20"
+                                className="w-full bg-white/5 border border-dashed border-white/10 text-gray-400 hover:text-white hover:bg-white/10 hover:border-white/30 font-black py-4 rounded-2xl transition-all uppercase tracking-[0.2em] text-[11px] mt-4"
                             >
-                                Emergency System Override
+                                EXECUTE EMERGENCY SYSTEM OVERRIDE
                             </button>
                         </div>
 
