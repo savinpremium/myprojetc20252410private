@@ -49,15 +49,14 @@ export const useAuth = () => {
                             updateGlobalState(null, false);
                         }
                     }, (error) => {
-                        console.warn("Firebase Auth blocked/restricted:", error.message);
+                        console.warn("Firebase Auth restricted:", error.message);
                         updateGlobalState(null, false);
                     });
                     
-                    // Safety timeout: If Firebase doesn't respond in 3 seconds, stop loading
-                    // to allow the user to see the Login/Override screen.
+                    // Safety timeout
                     setTimeout(() => {
                         if (globalLoading) updateGlobalState(globalUser, false);
-                    }, 3000);
+                    }, 2500);
 
                 } catch (e) {
                     console.warn("Auth initialization failed:", e);
@@ -67,7 +66,6 @@ export const useAuth = () => {
                 updateGlobalState(null, false);
             }
         } else if (guestFlag) {
-             // If we are in guest mode, we are definitely not loading
              setState({ user: globalUser, loading: false });
         }
 
@@ -86,11 +84,15 @@ export const useAuth = () => {
             photoURL: null,
             emailVerified: true
         } as any, false);
+        
+        // Force reload to ensure all services pick up the new bypass state
+        window.location.reload();
     };
 
     const clearGuestMode = () => {
         localStorage.removeItem('infinity_guest_active');
         updateGlobalState(null, false);
+        window.location.reload();
     };
 
     return { user: state.user, loading: state.loading, loginAsGuest, clearGuestMode };

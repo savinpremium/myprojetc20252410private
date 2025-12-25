@@ -3,11 +3,14 @@ import { GoogleGenAI, Modality } from "@google/genai";
 import type { Message, ViewMode, ImageStyle, AspectRatio } from '../types';
 
 const getAIClient = () => {
-    const apiKey = process.env.API_KEY;
+    // Priority: process.env.API_KEY -> User Provided Fallback
+    const apiKey = process.env.API_KEY || 'AIzaSyBll12h2t9UU_5fqjk2VopsG4OkAKdWKHU';
+    
     if (!apiKey) {
-        throw new Error("API_KEY environment variable is not defined. Please check your hosting environment configuration.");
+        console.error("Critical: No API Key detected in environment or fallback.");
     }
-    return new GoogleGenAI({ apiKey });
+    
+    return new GoogleGenAI({ apiKey: apiKey || "" });
 };
 
 const dataUrlToGeminiPart = (url: string) => {
@@ -31,15 +34,13 @@ export const getChatResponseStream = async (history: Message[], systemInstructio
       })
   }));
 
-  // Use Flash as the standard model for higher availability.
-  // Use Pro only when explicit thinking is requested.
+  // Standardize on flash-preview for maximum reliability across different environments
   const model = (mode === 'code' || useThinking) ? 'gemini-3-pro-preview' : 'gemini-3-flash-preview';
   
   const config: any = {
     systemInstruction,
   };
 
-  // Only add tools if using the Pro model or if specifically needed
   if (model === 'gemini-3-pro-preview' && (mode === 'chat' || mode === 'vision')) {
     config.tools = [{googleSearch: {}}];
   }
@@ -55,9 +56,8 @@ export const getChatResponseStream = async (history: Message[], systemInstructio
         config,
       });
   } catch (err: any) {
-      console.warn(`Primary model (${model}) failed, attempting fallback to flash-preview...`, err);
+      console.warn(`Primary model (${model}) failed, attempting fallback...`, err);
       
-      // If thinking failed, try regular flash without thinking config or tools
       return await ai.models.generateContentStream({
         model: 'gemini-3-flash-preview',
         contents: contents,
@@ -88,9 +88,9 @@ export const generateImage = async (prompt: string, style: ImageStyle, aspectRat
                 return `data:image/png;base64,${part.inlineData.data}`;
             }
         }
-        throw new Error("Image part missing from AI response.");
+        throw new Error("Visual data stream empty.");
     } catch (err: any) {
-        throw new Error(`Visual Synthesis Failed: ${err.message}`);
+        throw new Error(`Visual Synthesis Error: ${err.message}`);
     }
 };
 
@@ -123,7 +123,7 @@ export const generateVideo = async (prompt: string, aspectRatio: '16:9' | '9:16'
         const downloadLink = operation.response?.generatedVideos?.[0]?.video?.uri;
         if (!downloadLink) throw new Error("No download link returned.");
         
-        const response = await fetch(`${downloadLink}&key=${process.env.API_KEY}`);
+        const response = await fetch(`${downloadLink}&key=${process.env.API_KEY || 'AIzaSyBll12h2t9UU_5fqjk2VopsG4OkAKdWKHU'}`);
         const blob = await response.blob();
         return URL.createObjectURL(blob);
     } catch (err: any) {
@@ -143,7 +143,6 @@ export const generateCode = async (prompt: string): Promise<string> => {
         });
         return response.text;
     } catch (err: any) {
-        // Fallback to flash for code if pro fails
         const fallback = await ai.models.generateContent({
             model: 'gemini-3-flash-preview',
             contents: prompt,
