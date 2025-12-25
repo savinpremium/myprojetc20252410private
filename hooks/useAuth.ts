@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-// FIX: onAuthStateChanged is now a method on the auth object from firebaseService, so the direct import is removed.
+import { onAuthStateChanged } from 'firebase/auth';
 import { auth, type User } from '../services/firebaseService';
 
 export const useAuth = () => {
@@ -7,25 +7,56 @@ export const useAuth = () => {
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        // FIX: Use the v8-compat onAuthStateChanged method from the auth instance.
-        const unsubscribe = auth.onAuthStateChanged((user) => {
-            if (user) {
-                const isEmailPasswordUser = user.providerData.some(p => p.providerId === 'password');
-                // The main app should only be accessible to verified users
-                if (isEmailPasswordUser && !user.emailVerified) {
+        // Support for "System Override" / Guest Mode
+        const guestFlag = localStorage.getItem('infinity_guest_active');
+        if (guestFlag === 'true') {
+            setUser({
+                uid: 'guest-bypass-2026',
+                email: 'guest@infinity.ai',
+                displayName: 'Guest Operative',
+                photoURL: null,
+                emailVerified: true
+            } as any);
+            setLoading(false);
+            return;
+        }
+
+        const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
+            if (firebaseUser) {
+                // If it's a normal user, check verification
+                const isEmailPasswordUser = firebaseUser.providerData.some(p => p.providerId === 'password');
+                if (isEmailPasswordUser && !firebaseUser.emailVerified) {
                     setUser(null);
                 } else {
-                    setUser(user);
+                    setUser(firebaseUser as any);
                 }
             } else {
                 setUser(null);
             }
             setLoading(false);
+        }, (error) => {
+            console.error("Auth state listener error (blocked?):", error);
+            setLoading(false);
         });
 
-        // Cleanup subscription on unmount
         return () => unsubscribe();
     }, []);
 
-    return { user, loading };
+    const loginAsGuest = () => {
+        localStorage.setItem('infinity_guest_active', 'true');
+        setUser({
+            uid: 'guest-bypass-2026',
+            email: 'guest@infinity.ai',
+            displayName: 'Guest Operative',
+            photoURL: null,
+            emailVerified: true
+        } as any);
+    };
+
+    const clearGuestMode = () => {
+        localStorage.removeItem('infinity_guest_active');
+        setUser(null);
+    };
+
+    return { user, loading, loginAsGuest, clearGuestMode };
 };

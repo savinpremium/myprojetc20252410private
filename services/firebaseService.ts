@@ -1,12 +1,25 @@
+import { initializeApp, getApps, getApp } from "firebase/app";
+import { 
+    getAuth, 
+    GoogleAuthProvider, 
+    signInWithPopup, 
+    signOut, 
+    setPersistence, 
+    browserSessionPersistence,
+    createUserWithEmailAndPassword as firebaseCreateUser,
+    signInWithEmailAndPassword as firebaseSignIn,
+    sendEmailVerification as firebaseVerify
+} from "firebase/auth";
 
-// FIX: Refactor to use Firebase v9 compat libraries to fix module export errors.
-import firebase from "firebase/compat/app";
-import "firebase/compat/auth";
+// Re-export specific User type
+export type User = {
+    uid: string;
+    email: string | null;
+    displayName: string | null;
+    photoURL: string | null;
+    emailVerified: boolean;
+};
 
-// Re-export the User type for other components. `firebase.User` is the correct type for the compat library.
-export type User = firebase.User;
-
-// Your web app's Firebase configuration - Updated for 2026 Release
 const firebaseConfig = {
   apiKey: "AIzaSyBsSZ7G0GXFxC_Sbv4uK-1QIKzPn6RaVxI",
   authDomain: "infinity---ai-2026.firebaseapp.com",
@@ -17,21 +30,17 @@ const firebaseConfig = {
   measurementId: "G-6XN2H9N5XW"
 };
 
-// Initialize Firebase using compat style, checking if it's already initialized.
-if (!firebase.apps.length) {
-    firebase.initializeApp(firebaseConfig);
-}
+// Initialize Firebase modularly
+const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
+export const auth = getAuth(app);
 
-// Get auth instance and set persistence
-export const auth = firebase.auth();
-// FIX: Changed persistence to `NONE` to resolve "operation-not-supported-in-this-environment" error.
-// This error occurs in environments where localStorage is disabled or restricted.
-// `NONE` persistence stores auth state in memory for the session only.
-auth.setPersistence(firebase.auth.Auth.Persistence.NONE);
+// Use session persistence to avoid issues with blocked cookies/localstorage in some frames
+setPersistence(auth, browserSessionPersistence).catch(err => console.warn("Persistence error:", err));
 
-// Configure Google provider
-const googleProvider = new firebase.auth.GoogleAuthProvider();
+const googleProvider = new GoogleAuthProvider();
 
-// Export auth functions
-export const signInWithGoogle = () => auth.signInWithPopup(googleProvider);
-export const handleSignOut = () => auth.signOut();
+export const signInWithGoogle = () => signInWithPopup(auth, googleProvider);
+export const handleSignOut = () => signOut(auth);
+export const createUserWithEmailAndPassword = firebaseCreateUser;
+export const signInWithEmailAndPassword = firebaseSignIn;
+export const sendEmailVerification = firebaseVerify;

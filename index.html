@@ -41,19 +41,6 @@
         transform: scale(1.03);
         box-shadow: 0 0 25px rgba(59, 130, 246, 0.5), 0 0 35px rgba(139, 92, 246, 0.4);
       }
-      .auth-panel {
-        background: rgba(17, 24, 39, 0.5);
-        backdrop-filter: blur(16px);
-        -webkit-backdrop-filter: blur(16px);
-        border: 1px solid rgba(255, 255, 255, 0.1);
-        box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
-        animation: fadeIn 1s ease-out;
-      }
-
-      @keyframes fadeIn {
-        from { opacity: 0; transform: scale(0.95); }
-        to { opacity: 1; transform: scale(1); }
-      }
     </style>
   <script type="importmap">
 {
@@ -62,9 +49,9 @@
     "react/": "https://aistudiocdn.com/react@^19.1.1/",
     "react": "https://aistudiocdn.com/react@^19.1.1",
     "@google/genai": "https://aistudiocdn.com/@google/genai@^1.21.0",
-    "firebase/app": "https://www.gstatic.com/firebasejs/9.15.0/firebase-app.js",
-    "firebase/auth": "https://www.gstatic.com/firebasejs/9.15.0/firebase-auth.js",
-    "firebase/": "https://aistudiocdn.com/firebase@^12.3.0/"
+    "firebase/app": "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js",
+    "firebase/auth": "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js",
+    "firebase/": "https://esm.sh/firebase@^12.7.0/"
   }
 }
 </script>
