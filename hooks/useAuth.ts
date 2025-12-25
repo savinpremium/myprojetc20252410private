@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { onAuthStateChanged } from 'firebase/auth';
 import { auth, type User } from '../services/firebaseService';
@@ -7,7 +8,7 @@ export const useAuth = () => {
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        // Support for "System Override" / Guest Mode
+        // Support for "System Override" / Guest Mode - Check this FIRST
         const guestFlag = localStorage.getItem('infinity_guest_active');
         if (guestFlag === 'true') {
             setUser({
@@ -21,25 +22,34 @@ export const useAuth = () => {
             return;
         }
 
-        const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
-            if (firebaseUser) {
-                // If it's a normal user, check verification
-                const isEmailPasswordUser = firebaseUser.providerData.some(p => p.providerId === 'password');
-                if (isEmailPasswordUser && !firebaseUser.emailVerified) {
-                    setUser(null);
-                } else {
-                    setUser(firebaseUser as any);
-                }
-            } else {
-                setUser(null);
-            }
-            setLoading(false);
-        }, (error) => {
-            console.error("Auth state listener error (blocked?):", error);
-            setLoading(false);
-        });
+        // If Firebase auth is available, try to listen
+        if (auth && typeof auth.onAuthStateChanged === 'function') {
+            try {
+                const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
+                    if (firebaseUser) {
+                        const isEmailPasswordUser = firebaseUser.providerData.some(p => p.providerId === 'password');
+                        if (isEmailPasswordUser && !firebaseUser.emailVerified) {
+                            setUser(null);
+                        } else {
+                            setUser(firebaseUser as any);
+                        }
+                    } else {
+                        setUser(null);
+                    }
+                    setLoading(false);
+                }, (error) => {
+                    console.warn("Auth listener encountered a restriction. Suggesting Override.", error);
+                    setLoading(false);
+                });
 
-        return () => unsubscribe();
+                return () => unsubscribe();
+            } catch (e) {
+                console.warn("Error setting up auth listener:", e);
+                setLoading(false);
+            }
+        } else {
+            setLoading(false);
+        }
     }, []);
 
     const loginAsGuest = () => {

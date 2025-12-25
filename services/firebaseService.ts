@@ -1,3 +1,4 @@
+
 import { initializeApp, getApps, getApp } from "firebase/app";
 import { 
     getAuth, 
@@ -11,7 +12,6 @@ import {
     sendEmailVerification as firebaseVerify
 } from "firebase/auth";
 
-// Re-export specific User type
 export type User = {
     uid: string;
     email: string | null;
@@ -30,17 +30,37 @@ const firebaseConfig = {
   measurementId: "G-6XN2H9N5XW"
 };
 
-// Initialize Firebase modularly
-const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
-export const auth = getAuth(app);
+let app;
+let auth: any;
 
-// Use session persistence to avoid issues with blocked cookies/localstorage in some frames
-setPersistence(auth, browserSessionPersistence).catch(err => console.warn("Persistence error:", err));
+try {
+    app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
+    auth = getAuth(app);
+    // Attempt persistence but don't crash if it fails
+    setPersistence(auth, browserSessionPersistence).catch(() => {});
+} catch (e) {
+    console.warn("Firebase failed to initialize. System will default to Override Mode.", e);
+    // Create a mock auth object that does nothing to prevent downstream crashes
+    auth = {
+        onAuthStateChanged: (cb: any) => () => {},
+        currentUser: null,
+    };
+}
+
+export { auth };
 
 const googleProvider = new GoogleAuthProvider();
 
-export const signInWithGoogle = () => signInWithPopup(auth, googleProvider);
-export const handleSignOut = () => signOut(auth);
+export const signInWithGoogle = () => {
+    if (!auth.app) throw new Error("Auth service unavailable. Use System Override.");
+    return signInWithPopup(auth, googleProvider);
+};
+
+export const handleSignOut = () => {
+    if (auth.signOut) return signOut(auth);
+    return Promise.resolve();
+};
+
 export const createUserWithEmailAndPassword = firebaseCreateUser;
 export const signInWithEmailAndPassword = firebaseSignIn;
 export const sendEmailVerification = firebaseVerify;

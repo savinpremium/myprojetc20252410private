@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import type { FC, MouseEvent } from 'react';
 import { RayBackground } from './RayBackground';
@@ -30,24 +31,27 @@ export const LoginView: FC = () => {
             const isBlockedError = 
                 err.message?.toLowerCase().includes('identitytoolkit') || 
                 err.message?.toLowerCase().includes('blocked') ||
-                err.code === 'auth/api-key-not-valid';
+                err.code === 'auth/api-key-not-valid' ||
+                err.code === 'auth/internal-error';
 
             if (isBlockedError) {
                 setError(
-                    <div className="flex flex-col gap-3 p-1">
+                    <div className="flex flex-col gap-3 p-2">
                         <div className="flex items-center justify-center gap-2 text-red-400 font-bold">
                             <WarningIcon className="w-5 h-5" />
-                            <span>System API Restricted</span>
+                            <span>Cloud Services Restricted</span>
                         </div>
                         <p className="text-[11px] leading-tight text-gray-400">
-                            The Firebase Identity service is blocked for this project.
+                            The Identity Toolkit is currently blocked in your Firebase project configuration.
                         </p>
-                        <button 
-                            onClick={() => loginAsGuest()}
-                            className="mt-2 w-full bg-indigo-600 hover:bg-indigo-500 text-white font-black py-3 rounded-xl transition-all shadow-lg shadow-indigo-600/30 uppercase tracking-widest text-[10px]"
-                        >
-                            Activate System Override (Guest Mode)
-                        </button>
+                        <div className="pt-2">
+                            <button 
+                                onClick={() => loginAsGuest()}
+                                className="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-black py-4 rounded-2xl transition-all shadow-xl shadow-indigo-600/30 uppercase tracking-[0.2em] text-[11px] ring-2 ring-indigo-400/20"
+                            >
+                                Force System Override (Bypass Login)
+                            </button>
+                        </div>
                     </div>
                 );
             } else {
@@ -72,7 +76,7 @@ export const LoginView: FC = () => {
             setVerificationSent(true);
             switchMode('signin');
         } catch (err: any) {
-             setError(err.message || "Failed to sign up.");
+             handleManualError(err);
         }
     };
 
@@ -82,13 +86,24 @@ export const LoginView: FC = () => {
         try {
             await signInWithEmailAndPassword(auth, email, password);
         } catch (err: any) {
-             if(err.code === 'auth/user-not-found' || err.code === 'auth/invalid-credential') {
-                setError("Access Denied: Invalid email or password.");
-             } else {
-                setError(err.message || "Failed to sign in.");
-             }
+             handleManualError(err);
         }
     };
+
+    const handleManualError = (err: any) => {
+        if(err.code === 'auth/user-not-found' || err.code === 'auth/invalid-credential' || err.code === 'auth/wrong-password') {
+            setError("Access Denied: Invalid email or password.");
+        } else if (err.message?.toLowerCase().includes('identitytoolkit') || err.message?.toLowerCase().includes('blocked')) {
+            setError(
+                <div className="flex flex-col gap-2 p-1">
+                    <p className="text-red-400 font-bold">API Initialization Blocked</p>
+                    <button onClick={() => loginAsGuest()} className="text-blue-400 underline font-black uppercase text-[10px] tracking-widest">Use Guest Override</button>
+                </div>
+            );
+        } else {
+            setError(err.message || "Failed to sign in.");
+        }
+    }
     
     const switchMode = (newMode: 'signin' | 'signup') => {
         setMode(newMode);
@@ -110,7 +125,7 @@ export const LoginView: FC = () => {
     return (
         <div className="w-screen h-screen bg-black text-gray-200 flex items-center justify-center p-4 overflow-hidden font-inter">
             <RayBackground />
-            <div className="auth-panel-enhanced w-full max-w-6xl rounded-[3rem] grid grid-cols-1 md:grid-cols-2 overflow-hidden shadow-2xl shadow-blue-500/10">
+            <div className="auth-panel-enhanced w-full max-w-6xl rounded-[3rem] grid grid-cols-1 md:grid-cols-2 overflow-hidden shadow-2xl shadow-blue-500/10 border border-white/10">
                 {/* Left Side: Branding */}
                 <div className="p-8 md:p-12 bg-black/40 flex flex-col justify-between hidden md:flex border-r border-white/5">
                     <div className="space-y-8">
@@ -124,8 +139,8 @@ export const LoginView: FC = () => {
                         </div>
                         
                         <div className="space-y-4">
-                            <Feature icon={<ChatIcon className="w-7 h-7"/>} title="Neural Dialog" description="Infinite reasoning engine for complex instruction following." />
-                            <Feature icon={<ImageIcon className="w-7 h-7"/>} title="Pixel Forge" description="Masterpiece visual generation system powered by Gemini 3 Pro." />
+                            <Feature icon={<ChatIcon className="w-7 h-7"/>} title="Neural Dialog" description="Gemini 3 Pro reasoning engine for complex instruction following." />
+                            <Feature icon={<ImageIcon className="w-7 h-7"/>} title="Pixel Forge" description="Masterpiece visual generation system powered by Imagen 4." />
                             <Feature icon={<CodeIcon className="w-7 h-7"/>} title="Logic Canvas" description="Expert software development and code synthesis interface." />
                         </div>
                     </div>
@@ -137,9 +152,9 @@ export const LoginView: FC = () => {
                 </div>
 
                 {/* Right Side: Auth Form */}
-                <div className="p-8 md:p-12 flex flex-col justify-center bg-gray-900/40 backdrop-blur-3xl">
+                <div className="p-8 md:p-12 flex flex-col justify-center bg-gray-900/40 backdrop-blur-3xl relative">
                     <div key={formKey} className="animate-form-fade-in max-w-md mx-auto w-full">
-                        <div className="mb-10 text-center">
+                        <div className="mb-8 text-center">
                             <h2 className="text-3xl font-black text-white mb-2 uppercase tracking-tight">
                                 {mode === 'signin' ? 'Verify Identity' : 'Initialize Profile'}
                             </h2>
@@ -149,14 +164,14 @@ export const LoginView: FC = () => {
                         </div>
                         
                         {error && (
-                          <div className="mb-8 p-4 w-full bg-red-900/20 border border-red-500/20 rounded-2xl text-center text-sm font-medium animate-pulse">
+                          <div className="mb-6 p-4 w-full bg-red-900/30 border border-red-500/30 rounded-2xl text-center text-sm font-medium">
                                 {error}
                           </div>
                         )}
 
                         {verificationSent && (
-                            <div className="mb-8 p-4 w-full bg-emerald-900/20 border border-emerald-500/20 rounded-2xl text-center text-sm font-bold text-emerald-300">
-                                Verification core initiated. Please check your secure inbox.
+                            <div className="mb-6 p-4 w-full bg-emerald-900/20 border border-emerald-500/20 rounded-2xl text-center text-sm font-bold text-emerald-300">
+                                Verification core initiated. Check your secure inbox.
                             </div>
                         )}
 
@@ -169,7 +184,7 @@ export const LoginView: FC = () => {
                                 Google Auth Protocol
                             </button>
                             
-                            <div className="relative flex items-center py-4">
+                            <div className="relative flex items-center py-2">
                                 <div className="flex-grow border-t border-white/5"></div>
                                 <span className="flex-shrink mx-4 text-[10px] font-black text-gray-600 uppercase tracking-widest">Internal Proxy</span>
                                 <div className="flex-grow border-t border-white/5"></div>
@@ -177,23 +192,21 @@ export const LoginView: FC = () => {
                             
                             <form className="space-y-4" onSubmit={(e) => e.preventDefault()}>
                                 <div className="space-y-1">
-                                    <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest ml-1">Terminal ID</label>
                                     <input 
                                         type="email" 
                                         value={email} 
                                         onChange={e => setEmail(e.target.value)} 
                                         className="w-full bg-black/40 border border-white/10 rounded-2xl px-6 py-4 text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all font-medium text-sm" 
-                                        placeholder="id@infinity.ai" 
+                                        placeholder="Terminal ID (Email)" 
                                     />
                                 </div>
                                 <div className="space-y-1">
-                                    <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest ml-1">Access Key</label>
                                     <input 
                                         type="password" 
                                         value={password} 
                                         onChange={e => setPassword(e.target.value)} 
                                         className="w-full bg-black/40 border border-white/10 rounded-2xl px-6 py-4 text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all font-medium text-sm" 
-                                        placeholder="••••••••" 
+                                        placeholder="Access Key (Password)" 
                                     />
                                 </div>
 
@@ -207,17 +220,17 @@ export const LoginView: FC = () => {
 
                             <button 
                                 onClick={() => loginAsGuest()}
-                                className="w-full text-gray-500 hover:text-white font-black py-2 text-[10px] uppercase tracking-[0.3em] transition-colors"
+                                className="w-full text-gray-500 hover:text-white font-black py-2 text-[10px] uppercase tracking-[0.4em] transition-colors border border-dashed border-white/5 rounded-xl mt-4 hover:border-white/20"
                             >
-                                System Override (Guest)
+                                Emergency System Override
                             </button>
                         </div>
 
-                        <p className="text-center text-xs font-bold text-gray-500 mt-10 uppercase tracking-widest">
+                        <p className="text-center text-xs font-bold text-gray-500 mt-8 uppercase tracking-widest">
                             {mode === 'signin' ? "New operative?" : "Existing operative?"}
                             <button 
                                 onClick={() => switchMode(mode === 'signin' ? 'signup' : 'signin')} 
-                                className="font-black text-blue-400 hover:text-blue-300 ml-2 transition-colors border-b border-transparent hover:border-blue-400"
+                                className="font-black text-blue-400 hover:text-blue-300 ml-2 transition-colors"
                             >
                                 {mode === 'signin' ? 'Request Access' : 'Return to Login'}
                             </button>
@@ -229,7 +242,6 @@ export const LoginView: FC = () => {
                 .auth-panel-enhanced {
                     background: rgba(10, 10, 10, 0.7);
                     backdrop-filter: blur(40px);
-                    border: 1px solid rgba(255, 255, 255, 0.05);
                 }
                 
                 @keyframes form-fade-in {
