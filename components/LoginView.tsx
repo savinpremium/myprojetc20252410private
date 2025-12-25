@@ -14,7 +14,7 @@ import {
 export const LoginView: FC = () => {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
-    const [error, setError] = useState<string | null>(null);
+    const [error, setError] = useState<React.ReactNode | null>(null);
     const [mode, setMode] = useState<'signin' | 'signup'>('signin');
     const [verificationSent, setVerificationSent] = useState(false);
     const [formKey, setFormKey] = useState(0); 
@@ -25,9 +25,31 @@ export const LoginView: FC = () => {
             await signInWithGoogle();
         } catch (err: any) {
             console.error("Auth Error:", err);
-            // Specifically handle the Identity Toolkit missing error
-            if (err.message?.includes('identitytoolkit.googleapis.com') || err.message?.includes('has not been used')) {
-                setError("Authentication Error: The Identity Toolkit API is not enabled for this project. Please enable it in the Google Cloud Console.");
+            
+            const isToolkitError = 
+                err.message?.toLowerCase().includes('identitytoolkit.googleapis.com') || 
+                err.message?.toLowerCase().includes('has not been used') ||
+                err.code === 'auth/api-key-not-valid';
+
+            if (isToolkitError) {
+                setError(
+                    <div className="flex flex-col gap-3 p-2">
+                        <div className="flex items-center gap-2 text-red-400 font-bold">
+                            <WarningIcon className="w-5 h-5" />
+                            <span>Configuration Required</span>
+                        </div>
+                        <p className="text-xs text-gray-300">The Identity Toolkit API is not enabled for project 671917188786. This is required for authentication to function.</p>
+                        <a 
+                            href="https://console.developers.google.com/apis/api/identitytoolkit.googleapis.com/overview?project=671917188786"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="bg-blue-600 hover:bg-blue-500 text-white px-4 py-2.5 rounded-xl text-xs font-black transition-all shadow-lg shadow-blue-600/20 text-center uppercase tracking-wider"
+                        >
+                            Fix in Google Cloud Console
+                        </a>
+                        <p className="text-[10px] text-gray-500 italic">Note: It may take a few minutes for changes to propagate after enabling.</p>
+                    </div>
+                );
             } else if (err.code === 'auth/operation-not-supported-in-this-environment') {
                 setError("Google Sign-In is not supported in this environment. Please use Email/Password.");
             } else {
@@ -118,47 +140,71 @@ export const LoginView: FC = () => {
                         <p className="text-gray-400 text-center mb-8">{mode === 'signin' ? 'Log in to your workspace.' : 'Sign up to start creating.'}</p>
                         
                         {error && (
-                          <div className="flex flex-col items-center justify-center gap-2 text-red-300 font-medium mb-4 p-4 w-full bg-red-900/40 rounded-xl text-center text-sm border border-red-500/20">
-                            <WarningIcon className="w-6 h-6 flex-shrink-0 mb-1"/>
-                            <span>{error}</span>
+                          <div className="flex flex-col items-center justify-center gap-2 text-red-300 font-medium mb-4 p-4 w-full bg-red-900/40 rounded-xl text-center text-sm">
+                                {error}
                           </div>
                         )}
-                        {verificationSent && <div className="text-green-300 font-medium mb-4 p-3 w-full bg-green-900/40 rounded-lg text-center text-sm border border-green-500/20">Verification sent! Check your email.</div>}
 
-                        <button
-                            onClick={handleGoogleSignIn}
-                            className="w-full flex items-center justify-center gap-3 bg-gray-700/80 font-bold rounded-lg px-6 py-3 text-lg glowing-btn border border-white/10 hover:border-blue-500 transition-all"
-                        >
-                            <GoogleIcon />
-                            Sign in with Google
-                        </button>
-                        
-                        <div className="flex items-center my-6">
-                            <hr className="flex-grow border-gray-600"/>
-                            <span className="mx-4 text-gray-500 text-sm font-medium">OR</span>
-                            <hr className="flex-grow border-gray-600"/>
-                        </div>
-                        
-                        <form className="space-y-4" onSubmit={(e) => e.preventDefault()}>
-                            <div>
-                                <label htmlFor="email-input" className="sr-only">Email</label>
-                                <input type="email" id="email-input" value={email} onChange={e => setEmail(e.target.value)} className="auth-input" placeholder="your@email.com" />
+                        {verificationSent && (
+                            <div className="bg-emerald-900/40 border border-emerald-500/30 text-emerald-300 p-4 rounded-xl text-sm mb-6 text-center">
+                                A verification email has been sent. Please check your inbox.
                             </div>
-                            <div>
-                                <label htmlFor="password-input" className="sr-only">Password</label>
-                                <input type="password" id="password-input" value={password} onChange={e => setPassword(e.target.value)} className="auth-input" placeholder="••••••••" />
+                        )}
+
+                        <form className="space-y-4">
+                            <div className="space-y-2">
+                                <label className="text-xs font-bold text-gray-500 uppercase tracking-widest ml-1">Email Address</label>
+                                <input 
+                                    type="email" 
+                                    value={email}
+                                    onChange={(e) => setEmail(e.target.value)}
+                                    placeholder="name@company.com"
+                                    className="w-full bg-gray-900/50 border border-white/10 rounded-2xl px-5 py-4 focus:ring-2 focus:ring-blue-500 outline-none transition-all placeholder:text-gray-600"
+                                />
                             </div>
-                            {mode === 'signin' ? (
-                                <button onClick={handleEmailSignIn} className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-lg focus:outline-none focus:shadow-outline transition-all text-lg shadow-lg shadow-blue-600/20">Sign In</button>
-                            ) : (
-                                <button onClick={handleEmailSignUp} className="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-4 rounded-lg focus:outline-none focus:shadow-outline transition-all text-lg shadow-lg shadow-green-600/20">Create Account</button>
-                            )}
+                            <div className="space-y-2">
+                                <label className="text-xs font-bold text-gray-500 uppercase tracking-widest ml-1">Password</label>
+                                <input 
+                                    type="password" 
+                                    value={password}
+                                    onChange={(e) => setPassword(e.target.value)}
+                                    placeholder="••••••••"
+                                    className="w-full bg-gray-900/50 border border-white/10 rounded-2xl px-5 py-4 focus:ring-2 focus:ring-blue-500 outline-none transition-all placeholder:text-gray-600"
+                                />
+                            </div>
+
+                            <button 
+                                onClick={mode === 'signin' ? handleEmailSignIn : handleEmailSignUp}
+                                className="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-4 rounded-2xl transition-all shadow-lg shadow-blue-600/20 uppercase tracking-widest mt-2"
+                            >
+                                {mode === 'signin' ? 'Access Workspace' : 'Create Intelligence Profile'}
+                            </button>
                         </form>
 
-                        <p className="text-center text-sm text-gray-400 mt-6">
+                        <div className="relative my-8">
+                            <div className="absolute inset-0 flex items-center">
+                                <div className="w-full border-t border-white/10"></div>
+                            </div>
+                            <div className="relative flex justify-center text-xs uppercase">
+                                <span className="bg-[#0f1115] px-4 text-gray-500 font-bold tracking-widest">Digital ID Proxy</span>
+                            </div>
+                        </div>
+
+                        <button 
+                            onClick={handleGoogleSignIn}
+                            className="w-full bg-white text-black hover:bg-gray-100 font-bold py-4 rounded-2xl transition-all flex items-center justify-center gap-3 shadow-xl shadow-white/5 uppercase tracking-widest"
+                        >
+                            <GoogleIcon />
+                            Google Auth Core
+                        </button>
+
+                        <p className="mt-8 text-center text-sm text-gray-500">
                             {mode === 'signin' ? "Don't have an account?" : "Already have an account?"}
-                            <button onClick={() => switchMode(mode === 'signin' ? 'signup' : 'signin')} className="font-semibold text-blue-400 hover:text-blue-300 hover:underline ml-2 transition-colors">
-                                {mode === 'signin' ? 'Sign Up' : 'Sign In'}
+                            <button 
+                                onClick={() => switchMode(mode === 'signin' ? 'signup' : 'signin')}
+                                className="ml-2 text-blue-400 font-bold hover:underline"
+                            >
+                                {mode === 'signin' ? 'Request Access' : 'Sign In Now'}
                             </button>
                         </p>
                     </div>
@@ -166,65 +212,16 @@ export const LoginView: FC = () => {
             </div>
             <style>{`
                 .auth-panel-enhanced {
-                    background: rgba(17, 24, 39, 0.5);
-                    backdrop-filter: blur(24px);
-                    -webkit-backdrop-filter: blur(24px);
-                    border: 1px solid transparent;
-                    position: relative;
-                    animation: fadeIn 1s ease-out forwards;
+                    background: rgba(15, 17, 21, 0.7);
+                    backdrop-filter: blur(20px);
+                    border: 1px solid rgba(255, 255, 255, 0.05);
                 }
-
-                .auth-panel-enhanced::before {
-                    content: '';
-                    position: absolute;
-                    top: 0; left: 0; right: 0; bottom: 0;
-                    border-radius: 24px; 
-                    padding: 1px;
-                    background: linear-gradient(120deg, rgba(59, 130, 246, 0.3), rgba(139, 92, 246, 0.3), rgba(59, 130, 246, 0.3));
-                    -webkit-mask: 
-                        linear-gradient(#fff 0 0) content-box, 
-                        linear-gradient(#fff 0 0);
-                    -webkit-mask-composite: destination-out;
-                    mask-composite: exclude;
-                    pointer-events: none;
-                    animation: rotate-glow 5s linear infinite;
-                }
-
-                .auth-input {
-                    width: 100%;
-                    background-color: rgba(31, 41, 55, 0.7);
-                    border: 1px solid #374151;
-                    border-radius: 0.5rem;
-                    padding: 0.75rem 1rem;
-                    color: white;
-                    font-size: 1rem;
-                    transition: all 0.2s ease-in-out;
-                }
-
-                .auth-input:focus {
-                    outline: none;
-                    border-color: #3b82f6;
-                    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.4);
-                }
-
-                @keyframes fadeIn {
-                    from { opacity: 0; transform: scale(0.98); }
-                    to { opacity: 1; transform: scale(1); }
-                }
-
-                @keyframes rotate-glow {
-                    0% { background-position: 0% 50%; }
-                    50% { background-position: 100% 50%; }
-                    100% { background-position: 0% 50%; }
-                }
-                
                 @keyframes form-fade-in {
                     from { opacity: 0; transform: translateY(10px); }
                     to { opacity: 1; transform: translateY(0); }
                 }
-
                 .animate-form-fade-in {
-                    animation: form-fade-in 0.5s ease-out forwards;
+                    animation: form-fade-in 0.4s ease-out forwards;
                 }
             `}</style>
         </div>
