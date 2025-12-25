@@ -1,5 +1,5 @@
 {
-  "name": "infinityai-studio-2026",
+  "name": "copy-of-infinityai-studio-2026",
   "private": true,
   "version": "0.0.0",
   "type": "module",
@@ -12,7 +12,7 @@
     "react-dom": "^19.1.1",
     "react": "^19.1.1",
     "@google/genai": "^1.21.0",
-    "firebase": "^12.7.0"
+    "firebase": "^12.3.0"
   },
   "devDependencies": {
     "@types/node": "^22.14.0",

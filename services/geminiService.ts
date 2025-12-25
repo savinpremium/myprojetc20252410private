@@ -2,9 +2,7 @@
 import { GoogleGenAI, Modality } from "@google/genai";
 import type { Message, ViewMode, ImageStyle, AspectRatio } from '../types';
 
-// Temporary development key provided by the user
-const DEV_KEY = "AIzaSyBll12h2t9UU_5fqjk2VopsG4OkAKdWKHU";
-const getAIClient = () => new GoogleGenAI({ apiKey: process.env.API_KEY || DEV_KEY });
+const getAIClient = () => new GoogleGenAI({ apiKey: process.env.API_KEY });
 
 const dataUrlToGeminiPart = (url: string) => {
     const match = url.match(/^data:(.+);base64,(.+)$/);
@@ -50,7 +48,7 @@ export const getChatResponseStream = async (history: Message[], systemInstructio
 
 export const generateImage = async (prompt: string, style: ImageStyle, aspectRatio: AspectRatio): Promise<string> => {
     const ai = getAIClient();
-    const fullPrompt = `A ${style} style image of ${prompt}, ultra-high quality, masterpiece, Infinity Team proprietary 2026 rendering engine.`;
+    const fullPrompt = `A ${style} style image of ${prompt}, ultra-high quality, masterpiece, 2026 aesthetics.`;
 
     const response = await ai.models.generateContent({
         model: 'gemini-3-pro-image-preview',
@@ -68,14 +66,14 @@ export const generateImage = async (prompt: string, style: ImageStyle, aspectRat
             return `data:image/png;base64,${part.inlineData.data}`;
         }
     }
-    throw new Error("Infinity Image Core failed to respond.");
+    throw new Error("No image data returned from Gemini Pro Image.");
 };
 
 export const generateVideo = async (prompt: string, aspectRatio: '16:9' | '9:16' = '16:9'): Promise<string> => {
     const ai = getAIClient();
     let operation = await ai.models.generateVideos({
         model: 'veo-3.1-fast-generate-preview',
-        prompt: prompt + ", cinematic 4k, proprietary Infinity cinematic style",
+        prompt: prompt + ", cinematic 4k, 2026 movie style",
         config: {
             numberOfVideos: 1,
             resolution: '720p',
@@ -84,14 +82,14 @@ export const generateVideo = async (prompt: string, aspectRatio: '16:9' | '9:16'
     });
 
     while (!operation.done) {
-        await new Promise(resolve => setTimeout(resolve, 10000));
+        await new Promise(resolve => setTimeout(resolve, 5000));
         operation = await ai.operations.getVideosOperation({ operation: operation });
     }
 
     const downloadLink = operation.response?.generatedVideos?.[0]?.video?.uri;
-    if (!downloadLink) throw new Error("Infinity Video Core generation failed.");
+    if (!downloadLink) throw new Error("Video generation failed.");
     
-    const response = await fetch(`${downloadLink}&key=${process.env.API_KEY || DEV_KEY}`);
+    const response = await fetch(`${downloadLink}&key=${process.env.API_KEY}`);
     const blob = await response.blob();
     return URL.createObjectURL(blob);
 };
@@ -100,7 +98,7 @@ export const generateSpeech = async (text: string): Promise<string> => {
     const ai = getAIClient();
     const response = await ai.models.generateContent({
         model: "gemini-2.5-flash-preview-tts",
-        contents: [{ parts: [{ text: `Generate clear speech: ${text}` }] }],
+        contents: [{ parts: [{ text: `Say this clearly: ${text}` }] }],
         config: {
             responseModalities: [Modality.AUDIO],
             speechConfig: {
@@ -112,7 +110,7 @@ export const generateSpeech = async (text: string): Promise<string> => {
     });
 
     const base64Audio = response.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data;
-    if (!base64Audio) throw new Error("Infinity Voice Engine failed");
+    if (!base64Audio) throw new Error("TTS failed");
     return base64Audio;
 };
 
@@ -123,7 +121,7 @@ export const generateCode = async (prompt: string): Promise<string> => {
         contents: prompt,
         config: {
             thinkingConfig: { thinkingBudget: 8000 },
-            systemInstruction: "You are the Infinity Code Intelligence. An expert software engineer built by Infinity Team. Output ONLY code."
+            systemInstruction: "You are an expert software engineer. Output ONLY the code. Do not use markdown backticks unless requested."
         },
     });
     return response.text;
@@ -134,10 +132,10 @@ export const generateChatTitle = async (prompt: string): Promise<string> => {
     try {
         const response = await ai.models.generateContent({
             model: 'gemini-3-flash-preview',
-            contents: `Summarize as a 3-word title: "${prompt}"`,
+            contents: `Summarize this as a 3-word title: "${prompt}"`,
         });
         return response.text.replace(/"/g, '').trim();
     } catch {
-        return "Infinity Session";
+        return "New Chat";
     }
 };

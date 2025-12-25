@@ -20,10 +20,10 @@ export const VideoGeneratorView: FC<VideoGeneratorViewProps> = ({ videoUrl, isLo
   };
 
   const messages = [
-    "Synthesizing proprietary motion vectors...",
-    "Injecting cinematic lighting patterns...",
+    "Synthesizing motion vectors...",
+    "Injecting cinematic lighting...",
     "Calibrating temporal coherence...",
-    "Finalizing pixels for 2026 Infinity standards..."
+    "Finalizing pixels for 2026 standards..."
   ];
   const [msgIdx, setMsgIdx] = React.useState(0);
 
@@ -44,14 +44,14 @@ export const VideoGeneratorView: FC<VideoGeneratorViewProps> = ({ videoUrl, isLo
             </div>
             <div className="space-y-2">
                 <p className="text-blue-400 font-bold text-xl">{messages[msgIdx]}</p>
-                <p className="text-gray-500 text-sm italic">Infinity Motion-Core takes about 30-60 seconds.</p>
+                <p className="text-gray-500 text-sm italic">Video generation takes about 30-60 seconds.</p>
             </div>
           </div>
         )}
         {!isLoading && error && (
             <div className="text-red-400 space-y-4">
                 <WarningIcon className="w-20 h-20 mx-auto opacity-50" />
-                <h1 className="text-2xl font-bold">Infinity Core Interrupted</h1>
+                <h1 className="text-2xl font-bold">Director's Cut Failed</h1>
                 <p className="bg-red-950/30 p-4 rounded-2xl border border-red-500/20">{error}</p>
             </div>
         )}
@@ -63,19 +63,19 @@ export const VideoGeneratorView: FC<VideoGeneratorViewProps> = ({ videoUrl, isLo
                 className="inline-flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold px-8 py-3 rounded-full transition-all shadow-lg shadow-indigo-600/20"
             >
                 <DownloadIcon className="w-5 h-5" />
-                Export Infinity Cinema
+                Export 2026 Cinema
             </button>
           </div>
         )}
         {!isLoading && !error && !videoUrl && (
           <div className="text-gray-500 space-y-6 animate-fadeIn">
             <VideoIcon className="w-24 h-24 mx-auto text-gray-700" />
-            <h1 className="text-4xl font-black text-gray-400 tracking-tighter uppercase">Infinity Video Engine</h1>
+            <h1 className="text-4xl font-black text-gray-400 tracking-tighter uppercase">Veo Video Engine</h1>
             <p className="text-lg">Turn your imagination into cinematic clips.</p>
             <div className="flex justify-center gap-2 text-xs font-mono text-gray-600">
                 <span className="bg-gray-900 px-3 py-1 rounded-full border border-gray-800">1080P</span>
                 <span className="bg-gray-900 px-3 py-1 rounded-full border border-gray-800">60 FPS</span>
-                <span className="bg-gray-900 px-3 py-1 rounded-full border border-gray-800">2026 INF-CORE</span>
+                <span className="bg-gray-900 px-3 py-1 rounded-full border border-gray-800">2026 VEO 3.1</span>
             </div>
           </div>
         )}

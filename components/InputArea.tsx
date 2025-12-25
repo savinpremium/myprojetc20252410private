@@ -101,10 +101,10 @@ export const InputArea: FC<InputAreaProps> = ({ currentView, setCurrentView, onS
                         className={`flex items-center gap-2 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest transition-all ${useThinking ? 'bg-blue-500/20 text-blue-400 border border-blue-500/30' : 'bg-gray-800 text-gray-500 border border-transparent'}`}
                     >
                         <div className={`w-1.5 h-1.5 rounded-full ${useThinking ? 'bg-blue-400 animate-pulse' : 'bg-gray-600'}`} />
-                        Infinity Thinking-Core
+                        Deep Thinking Mode
                     </button>
-                    {currentView === 'image' && <span className="text-[10px] text-gray-500 font-bold uppercase tracking-widest">Infinity Visual-Core</span>}
-                    {currentView === 'video' && <span className="text-[10px] text-gray-500 font-bold uppercase tracking-widest">Infinity Motion-Core</span>}
+                    {currentView === 'image' && <span className="text-[10px] text-gray-500 font-bold uppercase tracking-widest">Gemini 3 Pro Image</span>}
+                    {currentView === 'video' && <span className="text-[10px] text-gray-500 font-bold uppercase tracking-widest">Veo 3.1 Fast</span>}
                 </div>
 
                 <div className="bg-gray-800/80 rounded-[2.5rem] border border-white/5 p-3 shadow-2xl transition-all hover:border-indigo-500/20">

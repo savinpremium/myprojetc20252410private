@@ -1,6 +1,6 @@
 {
-  "name": "InfinityAI Studio 2026",
-  "description": "Fusion Edition. Proprietary intelligence suite developed exclusively by Infinity Team.",
+  "name": "Copy of InfinityAI Studio 2026",
+  "description": "Fusion Edition with Gemini 3 Pro and Veo Cinematic Video generation.",
   "requestFramePermissions": [
     "microphone",
     "camera",

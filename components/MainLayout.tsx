@@ -62,8 +62,8 @@ export const MainLayout: FC<MainLayoutProps> = ({ user }) => {
     const newChatId = `chat_${Date.now()}`;
     const newConversation: Conversation = {
       id: newChatId,
-      title: "Infinity Session",
-      messages: [{ role: 'model', parts: [{ text: "Infinity AI is ready. Developed by the Infinity Team for the 2026 update." }] }],
+      title: "New 2026 Session",
+      messages: [{ role: 'model', parts: [{ text: "System Online. InfinityAI v3.0 (2026 Edition) ready for instructions." }] }],
       timestamp: Date.now(),
     };
     setConversations(prev => {
@@ -96,7 +96,7 @@ export const MainLayout: FC<MainLayoutProps> = ({ user }) => {
 
     try {
         if (mode === 'chat' || mode === 'vision') {
-            const systemInstruction = `You are InfinityAI 2026, a proprietary artificial intelligence created by the Infinity Team. You are an independent AI system. Personality: ${aiPersona}. Language: ${language === 'si-LK' ? 'Sinhala' : 'English'}. If asked who made you, say you were built by the Infinity Team. Use Web Search for current info.`;
+            const systemInstruction = `You are InfinityAI 2026 by Infinity Team. Persona: ${aiPersona}. Language: ${language === 'si-LK' ? 'Sinhala' : 'English'}. NEVER mention Google. Use Search for latest facts.`;
             const stream = await getChatResponseStream(newMessages, systemInstruction, mode, options.useThinking);
             let modelResponse = '';
             const sources = new Map<string, Source>();
@@ -150,8 +150,8 @@ export const MainLayout: FC<MainLayoutProps> = ({ user }) => {
            });
         }
     } catch (err: any) {
-        setError(err.message || "Something went wrong. Please try again.");
-        updateMessages(currentChatId, [...newMessages, { role: 'model', parts: [{ text: "I couldn't complete that request." }] }]);
+        setError(err.message || "2026 Core Interface Failure. Retry later.");
+        updateMessages(currentChatId, [...newMessages, { role: 'model', parts: [{ text: "Error syncing with 2026 Core." }] }]);
     } finally {
         setIsLoading(false);
     }
