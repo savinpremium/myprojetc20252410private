@@ -1,8 +1,8 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import type { FC, MouseEvent } from 'react';
 import { RayBackground } from './RayBackground';
-import { GoogleIcon, CodeIcon, ImageIcon, ChatIcon, WarningIcon } from './Icons';
+import { GoogleIcon, CodeIcon, ImageIcon, ChatIcon, WarningIcon, ProBadgeIcon } from './Icons';
 import { useAuth } from '../hooks/useAuth';
 import { 
     auth,
@@ -20,6 +20,24 @@ export const LoginView: FC = () => {
     const [mode, setMode] = useState<'signin' | 'signup'>('signin');
     const [verificationSent, setVerificationSent] = useState(false);
     const [formKey, setFormKey] = useState(0);
+    const [hasApiKey, setHasApiKey] = useState(false);
+
+    useEffect(() => {
+        const checkKey = async () => {
+            if ((window as any).aistudio) {
+                const selected = await (window as any).aistudio.hasSelectedApiKey();
+                setHasApiKey(selected);
+            }
+        };
+        checkKey();
+    }, []);
+
+    const handleConnectKey = async () => {
+        if ((window as any).aistudio) {
+            await (window as any).aistudio.openSelectKey();
+            setHasApiKey(true);
+        }
+    };
 
     const handleGoogleSignIn = async () => {
         setError(null);
@@ -39,17 +57,17 @@ export const LoginView: FC = () => {
                     <div className="flex flex-col gap-3 p-2">
                         <div className="flex items-center justify-center gap-2 text-red-400 font-bold">
                             <WarningIcon className="w-5 h-5" />
-                            <span>Cloud Services Restricted</span>
+                            <span>Authentication Blocked</span>
                         </div>
                         <p className="text-[11px] leading-tight text-gray-400">
-                            The Identity Toolkit is currently blocked in your Firebase project configuration. Use the override below.
+                            Cloud Identity services are restricted on this domain. Use the override below to enter as a guest.
                         </p>
                         <div className="pt-2">
                             <button 
                                 onClick={() => loginAsGuest()}
                                 className="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-black py-4 rounded-2xl transition-all shadow-xl shadow-indigo-600/30 uppercase tracking-[0.2em] text-[11px] ring-2 ring-indigo-400/20"
                             >
-                                Force System Override (Bypass Login)
+                                Force System Override
                             </button>
                         </div>
                     </div>
@@ -96,7 +114,7 @@ export const LoginView: FC = () => {
         } else if (err.message?.toLowerCase().includes('identitytoolkit') || err.message?.toLowerCase().includes('blocked')) {
             setError(
                 <div className="flex flex-col gap-2 p-1">
-                    <p className="text-red-400 font-bold">API Initialization Blocked</p>
+                    <p className="text-red-400 font-bold">Proxy Error</p>
                     <button onClick={() => loginAsGuest()} className="text-blue-400 underline font-black uppercase text-[10px] tracking-widest">Use Guest Override</button>
                 </div>
             );
@@ -144,7 +162,24 @@ export const LoginView: FC = () => {
                             <Feature icon={<CodeIcon className="w-7 h-7"/>} title="Logic Canvas" description="Expert software development and code synthesis interface." />
                         </div>
                     </div>
-                    <div className="mt-auto pt-8 border-t border-white/5">
+                    <div className="mt-auto space-y-4 pt-8 border-t border-white/5">
+                        <div className="bg-blue-500/10 p-4 rounded-2xl border border-blue-500/20">
+                            <div className="flex items-center gap-2 mb-2">
+                                <ProBadgeIcon className="w-5 h-5 text-blue-400" />
+                                <span className="text-xs font-black uppercase tracking-widest text-blue-300">Pro Features Enabled</span>
+                            </div>
+                            <p className="text-[11px] text-gray-400 leading-relaxed mb-3">
+                                High-quality image and video generation requires a selected API key from a paid GCP project.
+                            </p>
+                            <a 
+                                href="https://ai.google.dev/gemini-api/docs/billing" 
+                                target="_blank" 
+                                rel="noopener noreferrer"
+                                className="text-[10px] font-bold text-blue-400 hover:underline uppercase tracking-widest"
+                            >
+                                Learn about Billing & Keys →
+                            </a>
+                        </div>
                         <p className="text-[10px] text-gray-600 font-black uppercase tracking-[0.4em]">
                             © 2026 Infinity Systems • Non-Attributed AI
                         </p>
@@ -159,7 +194,7 @@ export const LoginView: FC = () => {
                                 {mode === 'signin' ? 'Verify Identity' : 'Initialize Profile'}
                             </h2>
                             <p className="text-gray-400 font-medium">
-                                {mode === 'signin' ? 'Unlock your neural workspace.' : 'Register for the 2026 intelligence tier.'}
+                                Unlock your neural workspace.
                             </p>
                         </div>
                         
@@ -169,16 +204,19 @@ export const LoginView: FC = () => {
                           </div>
                         )}
 
-                        {verificationSent && (
-                            <div className="mb-6 p-4 w-full bg-emerald-900/20 border border-emerald-500/20 rounded-2xl text-center text-sm font-bold text-emerald-300">
-                                Verification core initiated. Check your secure inbox.
-                            </div>
-                        )}
-
                         <div className="space-y-4">
+                            {/* Mandatory Key Selection Button */}
+                            <button
+                                onClick={handleConnectKey}
+                                className={`w-full flex items-center justify-center gap-3 font-black rounded-2xl px-6 py-4 text-xs uppercase tracking-widest transition-all ${hasApiKey ? 'bg-emerald-600/20 text-emerald-400 border border-emerald-500/30' : 'bg-indigo-600 text-white shadow-xl shadow-indigo-600/30 ring-2 ring-indigo-400/20'}`}
+                            >
+                                <ProBadgeIcon className="w-5 h-5" />
+                                {hasApiKey ? 'AI Node Connected' : 'Initialize Secure API Node'}
+                            </button>
+
                             <button
                                 onClick={handleGoogleSignIn}
-                                className="w-full flex items-center justify-center gap-3 bg-white text-black font-black rounded-2xl px-6 py-4 text-xs glowing-btn uppercase tracking-widest transition-transform active:scale-95"
+                                className="w-full flex items-center justify-center gap-3 bg-white text-black font-black rounded-2xl px-6 py-4 text-xs uppercase tracking-widest transition-transform active:scale-95"
                             >
                                 <GoogleIcon className="w-5 h-5" />
                                 Google Auth Protocol
@@ -191,30 +229,26 @@ export const LoginView: FC = () => {
                             </div>
                             
                             <form className="space-y-4" onSubmit={(e) => e.preventDefault()}>
-                                <div className="space-y-1">
-                                    <input 
-                                        type="email" 
-                                        value={email} 
-                                        onChange={e => setEmail(e.target.value)} 
-                                        className="w-full bg-black/40 border border-white/10 rounded-2xl px-6 py-4 text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all font-medium text-sm" 
-                                        placeholder="Terminal ID (Email)" 
-                                    />
-                                </div>
-                                <div className="space-y-1">
-                                    <input 
-                                        type="password" 
-                                        value={password} 
-                                        onChange={e => setPassword(e.target.value)} 
-                                        className="w-full bg-black/40 border border-white/10 rounded-2xl px-6 py-4 text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all font-medium text-sm" 
-                                        placeholder="Access Key (Password)" 
-                                    />
-                                </div>
+                                <input 
+                                    type="email" 
+                                    value={email} 
+                                    onChange={e => setEmail(e.target.value)} 
+                                    className="w-full bg-black/40 border border-white/10 rounded-2xl px-6 py-4 text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all font-medium text-sm" 
+                                    placeholder="Terminal ID (Email)" 
+                                />
+                                <input 
+                                    type="password" 
+                                    value={password} 
+                                    onChange={e => setPassword(e.target.value)} 
+                                    className="w-full bg-black/40 border border-white/10 rounded-2xl px-6 py-4 text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all font-medium text-sm" 
+                                    placeholder="Access Key (Password)" 
+                                />
 
                                 <button 
                                     onClick={mode === 'signin' ? handleEmailSignIn : handleEmailSignUp} 
-                                    className="w-full bg-blue-600 hover:bg-blue-500 text-white font-black py-4 rounded-2xl transition-all shadow-xl shadow-blue-600/20 uppercase tracking-widest text-xs mt-2"
+                                    className="w-full bg-blue-600 hover:bg-blue-500 text-white font-black py-4 rounded-2xl transition-all shadow-xl shadow-blue-600/20 uppercase tracking-widest text-xs"
                                 >
-                                    {mode === 'signin' ? 'Authorize Session' : 'Initialize Profile'}
+                                    {mode === 'signin' ? 'Authorize Session' : 'Create Operative'}
                                 </button>
                             </form>
 

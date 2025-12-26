@@ -1,9 +1,11 @@
+
 import React from 'react';
 import type { FC } from 'react';
 import { useAuth } from './hooks/useAuth';
 import { LoginView } from './components/LoginView';
 import { MainLayout } from './components/MainLayout';
 import { LoadingScreen } from './components/LoadingScreen';
+import { ReleaseGuard } from './components/ReleaseGuard';
 
 const App: FC = () => {
   const { user, loading } = useAuth();
@@ -12,11 +14,11 @@ const App: FC = () => {
     return <LoadingScreen />;
   }
 
-  if (!user) {
-    return <LoginView />;
-  }
-  
-  return <MainLayout user={user} />;
+  return (
+    <ReleaseGuard>
+        {!user ? <LoginView /> : <MainLayout user={user} />}
+    </ReleaseGuard>
+  );
 };
 
 export default App;
