@@ -34,7 +34,7 @@ export const getChatResponseStream = async (history: Message[], systemInstructio
       })
   }));
 
-  // Standardize on flash-preview for maximum reliability across different environments
+  // Standardize on flash-preview for maximum reliability
   const model = (mode === 'code' || useThinking) ? 'gemini-3-pro-preview' : 'gemini-3-flash-preview';
   
   const config: any = {
@@ -56,8 +56,7 @@ export const getChatResponseStream = async (history: Message[], systemInstructio
         config,
       });
   } catch (err: any) {
-      console.warn(`Primary model (${model}) failed, attempting fallback...`, err);
-      
+      console.warn(`Primary model (${model}) failed, attempting fallback to flash...`, err);
       return await ai.models.generateContentStream({
         model: 'gemini-3-flash-preview',
         contents: contents,
@@ -67,17 +66,22 @@ export const getChatResponseStream = async (history: Message[], systemInstructio
 };
 
 export const generateImage = async (prompt: string, style: ImageStyle, aspectRatio: AspectRatio): Promise<string> => {
-    const ai = getAIClient();
+    // If the user hasn't selected a key, we default to the standard Flash model which is more permissive.
+    // If they explicitly want high quality or if Flash fails, we check for a custom key.
     const fullPrompt = `A ${style} style image of ${prompt}, ultra-high quality, masterpiece, 2026 aesthetics.`;
+    
+    // Default to gemini-2.5-flash-image for standard stability
+    let modelName = 'gemini-2.5-flash-image';
+    
+    const ai = getAIClient();
 
     try {
         const response = await ai.models.generateContent({
-            model: 'gemini-3-pro-image-preview',
+            model: modelName,
             contents: [{ parts: [{ text: fullPrompt }] }],
             config: {
               imageConfig: {
                   aspectRatio: aspectRatio as any,
-                  imageSize: "1K"
               }
             },
         });
@@ -88,21 +92,44 @@ export const generateImage = async (prompt: string, style: ImageStyle, aspectRat
                 return `data:image/png;base64,${part.inlineData.data}`;
             }
         }
-        throw new Error("Visual data stream empty.");
+        throw new Error("No visual stream detected.");
     } catch (err: any) {
-        throw new Error(`Visual Synthesis Error: ${err.message}`);
+        console.warn("Flash image generation failed, trying Pro with key check...", err);
+        
+        // If it was a permission error, prompt for key
+        if (err.message?.includes('403') || err.message?.includes('permission')) {
+            if (typeof window !== 'undefined' && (window as any).aistudio) {
+                const hasKey = await (window as any).aistudio.hasSelectedApiKey();
+                if (!hasKey) {
+                    await (window as any).aistudio.openSelectKey();
+                    // Re-instantiate AI client to pick up the new key from process.env.API_KEY
+                    const newAi = getAIClient();
+                    const retryResponse = await newAi.models.generateContent({
+                        model: 'gemini-3-pro-image-preview',
+                        contents: [{ parts: [{ text: fullPrompt }] }],
+                        config: { imageConfig: { aspectRatio: aspectRatio as any, imageSize: "1K" } },
+                    });
+                    const retryParts = retryResponse.candidates?.[0]?.content?.parts || [];
+                    for (const p of retryParts) {
+                        if (p.inlineData) return `data:image/png;base64,${p.inlineData.data}`;
+                    }
+                }
+            }
+        }
+        throw new Error(`Visual Synthesis Error: ${err.message || 'Access Denied'}. Please ensure your API project has "Gemini Pro Image" enabled or use the Emergency Override.`);
     }
 };
 
 export const generateVideo = async (prompt: string, aspectRatio: '16:9' | '9:16' = '16:9'): Promise<string> => {
-    const ai = getAIClient();
-    
+    // Mandatory key check for Veo
     if (typeof window !== 'undefined' && (window as any).aistudio) {
         const hasKey = await (window as any).aistudio.hasSelectedApiKey();
         if (!hasKey) {
             await (window as any).aistudio.openSelectKey();
         }
     }
+
+    const ai = getAIClient();
 
     try {
         let operation = await ai.models.generateVideos({
@@ -121,13 +148,13 @@ export const generateVideo = async (prompt: string, aspectRatio: '16:9' | '9:16'
         }
 
         const downloadLink = operation.response?.generatedVideos?.[0]?.video?.uri;
-        if (!downloadLink) throw new Error("No download link returned.");
+        if (!downloadLink) throw new Error("Director's cut link generation failed.");
         
         const response = await fetch(`${downloadLink}&key=${process.env.API_KEY || 'AIzaSyBll12h2t9UU_5fqjk2VopsG4OkAKdWKHU'}`);
         const blob = await response.blob();
         return URL.createObjectURL(blob);
     } catch (err: any) {
-        throw new Error(`Video Engine Error: ${err.message}`);
+        throw new Error(`Video Engine Error: ${err.message}. Ensure you have selected a paid API key for Veo generation.`);
     }
 };
 
@@ -166,7 +193,7 @@ export const generateSpeech = async (text: string): Promise<string> => {
     },
   });
   const audioData = response.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data;
-  if (!audioData) throw new Error("Voice synthesis failure.");
+  if (!audioData) throw new Error("Neural voice module failed.");
   return audioData;
 };
 
